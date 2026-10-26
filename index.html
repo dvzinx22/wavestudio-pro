@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WaveStudio Pro - Editor de Audio Multipista</title>
+  <meta name="description" content="Estudio de audio profesional en el navegador. Arrastra archivos de audio de cualquier tipo, corta fragmentos con precisión, desplaza clips entre pistas y exporta tus mezclas fácilmente.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Fullscreen Drop Overlay -->
+  <div id="drop-overlay" class="drop-overlay">
+    <div class="drop-overlay-box">
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2>Suelta tus archivos de audio aquí</h2>
+      <p>Soporta WAV, MP3, OGG, FLAC, AAC, WebM, M4A y más</p>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Header & Transport Bar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 10v4M6 6v12M10 3v18M14 7v10M18 5v14M22 10v4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">WaveStudio</span>
+            <span class="brand-badge">PRO</span>
+          </div>
+        </div>
+
+        <div class="file-actions">
+          <label for="audio-file-input" class="btn btn-primary" id="btn-import" title="Importar archivos de audio">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+            </svg>
+            <span>Importar Audio</span>
+          </label>
+          <input type="file" id="audio-file-input" multiple accept="audio/*" style="display: none;">
+
+          <button id="btn-demo" class="btn btn-secondary" title="Cargar pistas de demostración para probar de inmediato">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span>Cargar Demo</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center Transport Controls -->
+      <div class="transport-center">
+        <div class="time-display" id="time-display">00:00.000</div>
+
+        <div class="transport-buttons">
+          <button id="btn-to-start" class="btn-icon" title="Volver al inicio (Tecla Home o 0)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 20L9 12l10-8v16zM5 19V5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <button id="btn-play" class="btn-icon btn-play" title="Reproducir / Pausa (Barra espaciadora)">
+            <svg id="play-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <polygon points="6 4 20 12 6 20 6 4"/>
+            </svg>
+            <svg id="pause-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="display: none;">
+              <rect x="6" y="4" width="4" height="16" rx="1"/>
+              <rect x="14" y="4" width="4" height="16" rx="1"/>
+            </svg>
+          </button>
+
+          <button id="btn-stop" class="btn-icon" title="Detener">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="2"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Master Volume & VU Meter -->
+        <div class="master-control">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+          <input type="range" id="master-vol" min="0" max="1.5" step="0.01" value="1" title="Volumen Maestro">
+          <div class="vu-meter">
+            <div class="vu-bar" id="vu-meter-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Toolbar Tools & Export -->
+      <div class="header-right">
+        <!-- Editing Tools -->
+        <div class="tool-group" role="group" aria-label="Herramientas de edición">
+          <button id="tool-pointer" class="tool-btn active" title="Herramienta Puntero / Mover (Tecla V)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3l7 18 3-7 7-3L3 3z"/>
+            </svg>
+            <span>Mover (V)</span>
+          </button>
+
+          <button id="tool-cut" class="tool-btn" title="Herramienta Cuchilla / Cortar (Tecla C)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="6" cy="6" r="3"/>
+              <circle cx="6" cy="18" r="3"/>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+            </svg>
+            <span>Cortar (C)</span>
+          </button>
+
+          <button id="btn-split-playhead" class="tool-btn" title="Cortar clip seleccionado en el cabezal (Tecla S)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2"/>
+              <path d="M7 8l-4 4 4 4M17 8l4 4-4 4"/>
+            </svg>
+            <span>Dividir (S)</span>
+          </button>
+        </div>
+
+        <!-- Snap Selector -->
+        <div class="snap-control">
+          <label for="snap-select">Snap:</label>
+          <select id="snap-select">
+            <option value="0">Libre</option>
+            <option value="0.1">0.1 s</option>
+            <option value="0.25">0.25 s</option>
+            <option value="0.5" selected>0.5 s</option>
+            <option value="1">1.0 s</option>
+          </select>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="zoom-controls">
+          <button id="btn-zoom-out" class="btn-icon-sm" title="Reducir Zoom (-)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </button>
+          <span id="zoom-level">100%</span>
+          <button id="btn-zoom-in" class="btn-icon-sm" title="Aumentar Zoom (+)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="11" y1="8" x2="11" y2="14"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Export Group with MP3 Bitrate Selector -->
+        <div class="export-group">
+          <select id="export-format" class="export-select" title="Formato y Calidad de Exportación">
+            <option value="192" selected>MP3 (192 kbps - Alta Calidad)</option>
+            <option value="320">MP3 (320 kbps - Máxima Calidad)</option>
+            <option value="128">MP3 (128 kbps - Tamaño Ligero)</option>
+            <option value="wav">WAV (Audio sin compresión)</option>
+          </select>
+
+          <button id="btn-export" class="btn btn-export" title="Exportar mezcla en MP3">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span id="btn-export-text">Exportar MP3</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="studio-workspace">
+      <!-- Tracks Sidebar (Left Headers) -->
+      <div class="tracks-sidebar">
+        <div class="tracks-sidebar-header">
+          <span>Pistas</span>
+          <button id="btn-add-track" class="btn-add-track" title="Agregar nueva pista de audio">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+            </svg>
+            <span>Pista</span>
+          </button>
+        </div>
+        <div class="track-headers-container" id="track-headers">
+          <!-- Dynamically populated track headers -->
+        </div>
+      </div>
+
+      <!-- Timeline Area (Right side) -->
+      <div class="timeline-area" id="timeline-area">
+        <!-- Ruler Bar -->
+        <div class="timeline-ruler-wrapper" id="timeline-ruler-wrapper">
+          <canvas id="ruler-canvas" class="ruler-canvas"></canvas>
+        </div>
+
+        <!-- Tracks Canvas / Lanes Container -->
+        <div class="tracks-viewport" id="tracks-viewport">
+          <!-- Animated Playhead line extending across all tracks -->
+          <div id="playhead" class="playhead">
+            <div class="playhead-handle"></div>
+            <div class="playhead-line"></div>
+          </div>
+
+          <!-- Real-time Hover Cursor Guide Line -->
+          <div id="cursor-guide" class="cursor-guide">
+            <span class="cursor-guide-time" id="cursor-guide-time">00:00.000</span>
+          </div>
+
+          <div class="track-lanes-container" id="track-lanes">
+            <!-- Dynamically populated track lanes & clips -->
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Action Bar & Shortcuts Guide -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="status-indicator online"></span>
+        <span id="status-text">Listo. Arrastra archivos de audio en cualquier pista o haz clic en "Importar Audio".</span>
+      </div>
+
+      <div class="footer-center">
+        <span class="selection-info" id="selection-info">Ningún clip seleccionado</span>
+      </div>
+
+      <div class="footer-right">
+        <button id="btn-duplicate-clip" class="btn-badge" title="Duplicar clip seleccionado (Ctrl+D)">
+          <kbd>Ctrl+D</kbd> Duplicar
+        </button>
+        <button id="btn-delete-clip" class="btn-badge btn-danger" title="Eliminar clip seleccionado (Supr / Backspace)">
+          <kbd>Supr</kbd> Eliminar
+        </button>
+        <button id="btn-help" class="btn-badge" title="Ver atajos de teclado y ayuda">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>
+          </svg>
+          Ayuda
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Help & Shortcuts Modal -->
+  <div id="help-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Guía y Atajos de Teclado</h3>
+        <button id="btn-close-modal" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-section">
+          <h4>Cómo usar el editor:</h4>
+          <ul>
+            <li><strong>Arrastrar y soltar:</strong> Arrastra cualquier archivo MP3, WAV, FLAC, OGG o M4A directamente a cualquier pista.</li>
+            <li><strong>Mover clips:</strong> Haz clic y arrastra un clip hacia la izquierda/derecha para desplazarlo en el tiempo, o hacia arriba/abajo para moverlo a otra pista.</li>
+            <li><strong>Cortar clips:</strong> Selecciona la herramienta <em>Cortar (C)</em> y haz clic sobre cualquier punto del clip, o presiona <em>S</em> para cortar el clip seleccionado justo en la línea roja del cabezal de reproducción.</li>
+            <li><strong>Recortar extremos:</strong> Pasa el cursor por los bordes izquierdo o derecho del clip y arrastra para recortar el audio de forma no destructiva.</li>
+            <li><strong>Exportar:</strong> Haz clic en <em>Exportar WAV</em> para renderizar y descargar la mezcla final con todas las pistas unificadas.</li>
+          </ul>
+        </div>
+        <div class="help-section">
+          <h4>Atajos de teclado:</h4>
+          <table class="shortcuts-table">
+            <tr><td><kbd>Espacio</kbd></td><td>Reproducir / Pausar</td></tr>
+            <tr><td><kbd>V</kbd></td><td>Herramienta Mover / Puntero</td></tr>
+            <tr><td><kbd>C</kbd></td><td>Herramienta Cortar (Cuchilla)</td></tr>
+            <tr><td><kbd>S</kbd></td><td>Dividir / Cortar clip seleccionado en el cabezal</td></tr>
+            <tr><td><kbd>Supr</kbd> / <kbd>Backspace</kbd></td><td>Eliminar clip seleccionado</td></tr>
+            <tr><td><kbd>Ctrl + D</kbd></td><td>Duplicar clip seleccionado</td></tr>
+            <tr><td><kbd>Inicio</kbd> / <kbd>0</kbd></td><td>Ir al inicio (00:00.000)</td></tr>
+            <tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Zoom In / Zoom Out</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="lame.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
