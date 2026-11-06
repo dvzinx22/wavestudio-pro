@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 title WaveStudio Pro - Servidor Local
 echo ========================================================
 echo   WaveStudio Pro - Editor de Audio Multipista
